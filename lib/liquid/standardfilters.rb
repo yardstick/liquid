@@ -4,10 +4,22 @@ require 'bigdecimal'
 module Liquid
 
   module StandardFilters
+    # Enumerable#reject
+    def except(input, *rejections)
+      [input].flatten.reject do |e|
+        rejections.include?(e)
+      end
+    end
+
+    # Enumerable#select
+    def only(input, *selections)
+      [input].flatten.select do |e|
+        selections.include?(e)
+      end
+    end
 
     # Return the size of an array or of an string
     def size(input)
-
       input.respond_to?(:size) ? input.size : 0
     end
 

@@ -11,6 +11,22 @@ class StandardFiltersTest < Test::Unit::TestCase
     @filters = Filters.new
   end
 
+  def test_except
+    assigns = { 'list' => ['a', 'b', 'c'] }
+    assert_template_result('ab', "{{ list | except: 'c'}}", assigns)
+    assert_template_result('ac', "{{ list | except: 'b'}}", assigns)
+    assert_template_result('c', "{{ list | except: 'a', 'b' }}", assigns)
+    assert_template_result('bc', "{{ list | except: 'a bc', 'a' }}", assigns)
+  end
+
+  def test_only
+    assigns = { 'list' => ['a', 'b', 'c'] }
+    assert_template_result('c', "{{ list | only: 'c'}}", assigns)
+    assert_template_result('b', "{{ list | only: 'b'}}", assigns)
+    assert_template_result('ab', "{{ list | only: 'a', 'b' }}", assigns)
+    assert_template_result('a', "{{ list | only: 'a bc', 'a' }}", assigns)
+  end
+
   def test_size
     assert_equal 3, @filters.size([1,2,3])
     assert_equal 0, @filters.size([])
