@@ -23,12 +23,12 @@ module Liquid
       input.respond_to?(:size) ? input.size : 0
     end
 
-    # convert a input string to DOWNCASE
+    # convert an input string to DOWNCASE
     def downcase(input)
       input.to_s.downcase
     end
 
-    # convert a input string to UPCASE
+    # convert an input string to UPCASE
     def upcase(input)
       input.to_s.upcase
     end
@@ -55,7 +55,8 @@ module Liquid
       if input.nil? then return end
       l = length.to_i - truncate_string.length
       l = 0 if l < 0
-      input.length > length.to_i ? input[0...l] + truncate_string : input
+      truncated = RUBY_VERSION[0,3] == "1.8" ? input.scan(/./mu)[0...l].to_s : input[0...l]
+      input.length > length.to_i ? truncated + truncate_string : input
     end
 
     def truncatewords(input, words = 15, truncate_string = "...")
@@ -76,14 +77,13 @@ module Liquid
     end
 
     def strip_html(input)
-      input.to_s.gsub(/<script.*?<\/script>/, '').gsub(/<!--.*?-->/, '').gsub(/<.*?>/, '')
+      input.to_s.gsub(/<script.*?<\/script>/m, '').gsub(/<!--.*?-->/m, '').gsub(/<style.*?<\/style>/m, '').gsub(/<.*?>/m, '')
     end
 
     # Remove all newlines from the string
     def strip_newlines(input)
-      input.to_s.gsub(/\n/, '')
+      input.to_s.gsub(/\r?\n/, '')
     end
-
 
     # Join elements of the array with certain character between them
     def join(input, glue = ' ')
@@ -112,10 +112,15 @@ module Liquid
     # map/collect on a given property
     def map(input, property)
       ary = [input].flatten
-      if ary.first.respond_to?('[]') and !ary.first[property].nil?
-        ary.map {|e| e[property] }
-      elsif ary.first.respond_to?(property)
-        ary.map {|e| e.send(property) }
+      ary.map do |e|
+        e = e.call if e.is_a?(Proc)
+        e = e.to_liquid if e.respond_to?(:to_liquid)
+
+        if property == "to_liquid"
+          e
+        elsif e.respond_to?(:[])
+          e[property]
+        end
       end
     end
 
@@ -192,7 +197,16 @@ module Liquid
         input = Time.at(input.to_i)
       end
 
-      date = input.is_a?(String) ? Time.parse(input) : input
+      date = if input.is_a?(String)
+        case input.downcase
+        when 'now', 'today'
+          Time.now
+        else
+          Time.parse(input)
+        end
+      else
+        input
+      end
 
       if date.respond_to?(:strftime)
         date.strftime(format.to_s)
