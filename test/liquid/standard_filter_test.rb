@@ -1,7 +1,30 @@
+# encoding: utf-8
+
 require 'test_helper'
 
 class Filters
   include Liquid::StandardFilters
+end
+
+class TestThing
+  def initialize
+    @foo = 0
+  end
+
+  def to_s
+    "woot: #{@foo}"
+  end
+
+  def to_liquid
+    @foo += 1
+    self
+  end
+end
+
+class TestDrop < Liquid::Drop
+  def test
+    "testfoo"
+  end
 end
 
 class StandardFiltersTest < Test::Unit::TestCase
@@ -53,6 +76,7 @@ class StandardFiltersTest < Test::Unit::TestCase
     assert_equal '1234567890', @filters.truncate('1234567890', 20)
     assert_equal '...', @filters.truncate('1234567890', 0)
     assert_equal '1234567890', @filters.truncate('1234567890')
+    assert_equal "测试...", @filters.truncate("测试测试测试测试", 5)
   end
 
   def test_strip
@@ -77,12 +101,16 @@ class StandardFiltersTest < Test::Unit::TestCase
     assert_equal 'one two...', @filters.truncatewords('one two three', 2)
     assert_equal 'one two three', @filters.truncatewords('one two three')
     assert_equal 'Two small (13&#8221; x 5.5&#8221; x 10&#8221; high) baskets fit inside one large basket (13&#8221;...', @filters.truncatewords('Two small (13&#8221; x 5.5&#8221; x 10&#8221; high) baskets fit inside one large basket (13&#8221; x 16&#8221; x 10.5&#8221; high) with cover.', 15)
+    assert_equal "测试测试测试测试", @filters.truncatewords('测试测试测试测试', 5)
   end
 
   def test_strip_html
     assert_equal 'test', @filters.strip_html("<div>test</div>")
     assert_equal 'test', @filters.strip_html("<div id='test'>test</div>")
     assert_equal '', @filters.strip_html("<script type='text/javascript'>document.write('some stuff');</script>")
+    assert_equal '', @filters.strip_html("<style type='text/css'>foo bar</style>")
+    assert_equal 'test', @filters.strip_html("<div\nclass='multiline'>test</div>")
+    assert_equal 'test', @filters.strip_html("<!-- foo bar \n test -->test")
     assert_equal '', @filters.strip_html(nil)
   end
 
@@ -106,6 +134,23 @@ class StandardFiltersTest < Test::Unit::TestCase
       'ary' => [{'foo' => {'bar' => 'a'}}, {'foo' => {'bar' => 'b'}}, {'foo' => {'bar' => 'c'}}]
   end
 
+  def test_map_doesnt_call_arbitrary_stuff
+    assert_equal "", Liquid::Template.parse('{{ "foo" | map: "__id__" }}').render
+    assert_equal "", Liquid::Template.parse('{{ "foo" | map: "inspect" }}').render
+  end
+
+  def test_map_calls_to_liquid
+    t = TestThing.new
+    assert_equal "woot: 1", Liquid::Template.parse('{{ foo }}').render("foo" => t)
+  end
+
+  def test_map_over_proc
+    drop = TestDrop.new
+    p = Proc.new{ drop }
+    templ = '{{ procs | map: "test" }}'
+    assert_equal "testfoo", Liquid::Template.parse(templ).render("procs" => [p])
+  end
+
   def test_date
     assert_equal 'May', @filters.date(Time.parse("2006-05-05 10:00:00"), "%B")
     assert_equal 'June', @filters.date(Time.parse("2006-06-05 10:00:00"), "%B")
@@ -123,6 +168,8 @@ class StandardFiltersTest < Test::Unit::TestCase
     assert_equal '07/05/2006', @filters.date("2006-07-05 10:00:00", "%m/%d/%Y")
 
     assert_equal "07/16/2004", @filters.date("Fri Jul 16 01:00:00 2004", "%m/%d/%Y")
+    assert_equal "#{Date.today.year}", @filters.date('now', '%Y')
+    assert_equal "#{Date.today.year}", @filters.date('today', '%Y')
 
     assert_equal nil, @filters.date(nil, "%B")
 
@@ -156,6 +203,7 @@ class StandardFiltersTest < Test::Unit::TestCase
 
   def test_strip_newlines
     assert_template_result 'abc', "{{ source | strip_newlines }}", 'source' => "a\nb\nc"
+    assert_template_result 'abc', "{{ source | strip_newlines }}", 'source' => "a\r\nb\nc"
   end
 
   def test_newlines_to_br

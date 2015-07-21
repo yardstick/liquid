@@ -1,5 +1,11 @@
 # Liquid template engine
 
+* [Contributing guidelines](CONTRIBUTING.md)
+* [Version history](History.md)
+* [Liquid documentation from Shopify](http://docs.shopify.com/themes/liquid-basics)
+* [Liquid Wiki from Shopify](http://wiki.shopify.com/Liquid)
+* [Website](http://liquidmarkup.org/)
+
 ## Introduction
 
 Liquid is a template engine which was written with very specific requirements:
