@@ -259,6 +259,13 @@ module Liquid
       apply_operation(input, operand, :%)
     end
 
+    def round(input, n = 0)
+      result = to_number(input).round(to_number(n))
+      result = result.to_f if result.is_a?(BigDecimal)
+      result = result.to_i if n == 0
+      result
+    end
+
     private
 
     def to_number(obj)

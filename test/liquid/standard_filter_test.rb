@@ -249,6 +249,12 @@ class StandardFiltersTest < Test::Unit::TestCase
     assert_template_result "1", "{{ 3 | modulo:2 }}"
   end
 
+  def test_round
+    assert_template_result "5", "{{ input | round }}", 'input' => 4.6
+    assert_template_result "4", "{{ '4.3' | round }}"
+    assert_template_result "4.56", "{{ input | round: 2 }}", 'input' => 4.5612
+  end
+
   def test_append
     assigns = {'a' => 'bc', 'b' => 'd' }
     assert_template_result('bcd',"{{ a | append: 'd'}}",assigns)
